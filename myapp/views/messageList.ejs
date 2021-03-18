@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Page Title</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/javascripts/htmlStr.js" defer></script>
+    <script>
+        let messageDataAry;
+        window.onload=function(){
+            let obj={'id':'recv'};
+            getMsgList(obj);
+        }
+        async function getMsgList(obj) {
+            let th = document.getElementById('writerTh');
+            if(obj.id=='recv'){
+                th.innerHTML='보낸사람';
+            }else if(obj.id=='send'){
+                th.innerHTML='받는사람';
+            }
+            let userId = '<%=userId%>';
+            let res = await axios.get('/msg/' + userId+"/"+obj.id);
+            let data = res.data;
+            messageDataAry=res.data;
+            let str = "";
+            for (let i = 0; i < data.length; i++) {
+                str += `<tr data-index='${i}' data-id='${data[i]._id}' onclick="readMsg(this)">
+                    <td colspan='2' >${data[i].title}</td>
+                    <td>`;
+                if (obj.id == 'recv') {
+                    str+=data[i].sender;
+                } else if (obj.id == 'send') {
+                    str+=data[i].receiver;
+                }
+                str+=`</td>
+                    </tr>
+                    `;
+            }            
+            document.getElementById('msgContentBoard').innerHTML=str;
+        }
+        async function getUserList(){
+            let res= await axios.get('/user');
+            let usrAry=res.data;
+            let str='<select name="usrs">';
+            for(let i = 0 ; i< usrAry.length ; i ++ ){
+                str+=`<option value="${usrAry[i].id}">${usrAry[i].id}</option>`;
+            }
+            str+="</select>";
+            return str;
+        }
+        function removePopup() {
+            let popup = document.getElementById('createMsgPopup');
+            popup.remove();
+            popupFlag=false;
+        }
+        let popupFlag = false;
+
+        async function showPopup(code,data) {
+            if (popupFlag == true){
+                alert('이전 팝업창을 닫아주세요');
+                return;
+            }
+                
+            let divEle = document.createElement('div');
+            divEle.id = 'createMsgPopup';
+            divEle.style.backgroundColor = "white";
+            divEle.style.border = '1px solid black';
+            divEle.style.display = 'table';
+            divEle.style.textAlign = 'center';
+            divEle.style.boxShadow = '5px 5px 5px';
+            
+            //divEle.style.marginLeft=window.innerWidth/2-divEle.clientWidth/2+"px";
+            divEle.innerHTML = await createMsgPopupStr(code,data);             
+            document.body.appendChild(divEle);
+            popupFlag = true;
+
+        }
+        async function sendMsgProcess(){
+            let formObj = document.getElementById('sendMsgForm');
+            let formEle = new FormData(formObj);
+            let res = await axios.post('/msg', formEle);
+            if(res.data=="ok"){
+                alert("전송성공");
+            }else{
+                alert("전송실패");
+            }
+            removePopup();
+            document.getElementById('send').checked=false;
+            let obj=document.getElementById('recv');
+            obj.checked=true
+            getMsgList(obj);
+        }
+
+        function readMsg(obj){
+            let idx=obj.getAttribute('data-index');
+            let data= messageDataAry[idx];
+            showPopup("readMsg",data);
+        }
+    </script>
+</head>
+
+<body>
+    <div>
+        <h1>Message<input type="button" value="메세지 보내기" onclick="showPopup('msgSend')">
+
+            <input type="button" value="about으로 이동" onclick="location.href='/about'"></h1>
+        <hr>
+        <br>
+        <h3>메세지를 클릭하면 내용을 볼 수 있습니다</h3>
+        <table id='board' style="width: 30rem; table-layout: fixed; text-align: center;">
+            <tr class="space" style="text-align: right;">
+                <td colspan="3" class="space">
+                    <label for="msg">받은편지함</label>
+                    <input type="radio" id="recv" name="msg" checked onchange="getMsgList(this)" />
+                    <label for="msg">보낸편지함</label>
+                    <input type="radio" id="send" name="msg" onchange="getMsgList(this)" />
+                </td>
+            </tr>
+
+
+            <tr>
+                <th style="font-weight: bolder; background-color:lightgreen;" colspan="2">제목</th>
+                <th id='writerTh' style="font-weight: bolder; background-color:lightgreen;">보낸사람</th>
+            </tr>
+        </table>
+        <table id='msgContentBoard' style="width: 30rem; table-layout: fixed; text-align: center;">
+            
+        </table>
+    </div>
+</body>
+
+</html>

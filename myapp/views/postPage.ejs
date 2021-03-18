@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Page Title</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link rel='stylesheet' type='text/css' media='screen' href='/stylesheets/board.css'>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        let post=null;
+        window.onload = function () {
+            var mode = "<%=mode %>";
+            var header = document.getElementById('header');
+            var title = document.getElementById('title');
+            var writer = document.getElementById('writer');
+            var createdAt = document.getElementById('createdAt');
+            var hashTag = document.getElementById('hashTag');
+            var contnet = document.getElementById('content');
+            var createBtn = document.getElementById('createBtn');
+            var updateBtn = document.getElementById('updateBtn');
+            var deleteBtn = document.getElementById('deleteBtn');
+            var cancleBtn = document.getElementById('cancleBtn');
+            var modifyBtn = document.getElementById('modifyBtn');
+             post = "<%=JSON.stringify(post) %>";
+            if (post != "null" && post != null) {
+                post = parseEjsVar(post);
+            }
+
+            let isMine = "<%=isMine%>";
+
+            switch (mode) {
+                case 'read':
+                if(isMine=="true"||isMine==true){
+                    deleteBtn.style.display = "inline";
+                    modifyBtn.style.display = "inline";
+                }
+                    
+                    header.innerText = "게시물 조회";
+                    title.value = post.title;
+                    
+                    content.value = post.content;
+                    hashTag.value = post.hashTag                    
+                    createBtn.style.display = "none";                    
+                    hashTag.readOnly = true;
+                    content.readOnly = true;
+                    title.readOnly = true;                    
+                    writer.value=post.writer;
+                    createdAt.value= post.createdAt;
+                    hashTagTd.innerHTML= makeHashtagStr(post.hashTag,"read");
+                    break;
+                case 'create':                
+                    writer.value=post.writer;
+                    createdAt.value= new Date().toISOString();      
+                    hashTagTd.innerHTML=`<input id='hashTag' class="container" type="text" name="hashTag"
+                            placeholder="#hashTag1 #hashTag2">`              
+                    break;
+                case 'update':
+                    ;
+                    break;
+            }
+        }
+         
+
+        function check(e) {
+        
+            if (title.value == null || title.value == '') {
+                alert("제목을 작성해 주세요");
+                return false;
+            }
+
+            if (content.value == null || content.value == '') {
+                alert("내용을 작성해 주세요");
+                return false;
+            }           
+            return true;
+        }
+
+        async function updateClick(e){
+            let formEle = document.getElementById('mainForm');
+            if(check(formEle)==false)
+                return;
+            
+            formEle = new FormData(formEle);
+            let res =await axios.patch('/board/post/'+post._id,formEle);
+            if(res.data=="ok"){
+                alert("수정 완료. 조회화면으로 이동합니다");
+                location.href="/board/post/"+post._id;
+            }else{
+                alert("수정 실패. 다시시도해주세요");
+            }
+        }
+
+        async function deleteClick(e){
+            let res =await axios.delete('/board/post/'+post._id);
+            if(res.data=="ok"){
+                alert("삭제 완료. 목록화면으로 이동합니다");
+                location.href="/board";
+            }else{
+                alert("삭제 실패. 다시시도해주세요");
+            }
+        }
+
+
+        function parseEjsVar(str) {
+
+            //ret = str.replace(/\r\n/gi,"\\r\\n").replace(/&#34;/gi, '\"');
+            ret = str.replace(/\r\n/gi,"\\r\\n").replace(/&#34;/gi, '\"');            
+            ret = JSON.parse(ret);
+
+            return ret;
+        }
+        function goUpdate(){
+            let isMine = "<%=isMine%>";
+            if(isMine=="true"||isMine==true){
+                    updateBtn.style.display = "inline";
+                    deleteBtn.style.display = "inline";
+                    cancleBtn.style.display = "inline";                    
+                    content.readOnly = false;
+                    title.readOnly = false;    
+                    header.innerText = "게시물 수정"; 
+                    hashTagTd.innerHTML=makeHashtagStr(post.hashTag,"update");
+                    hashTag.readOnly=false;
+            }else{
+                alert('작성자가 다르므로 수정권한 없음');
+            }
+        }
+
+        function makeHashtagStr(ary,mode){
+            let str='';
+            let len = ary?ary.length:0;
+            if(mode=='read')
+                for(let i = 0 ; i < len; i ++){                
+                    str+=`<a href='/board/hashTag/${ary[i].title}?list=true'>#${ary[i].title}&nbsp</a>`
+                }
+            else if(mode=='update'){
+                str+=`<input id='hashTag' class="container" type="text" name="hashTag" value='`;
+                for(let i=0;i<len;i++){          
+                str+=`#${ary[i].title}  `;
+                }
+                str+=`'>`;
+            }
+            return str;
+        }
+
+
+    </script>
+</head>
+
+<body>
+    <div>
+        <h1 style="display: inline;" id='header'>게시물 작성</h1><input id='modifyBtn' onclick='goUpdate()'type="button" value="수정모드로" style="display:none;">
+        <form id='mainForm' action="/board/post" method="post" onsubmit="return check(this);">
+            <table class='createTable'>
+                <tr>
+                    <td>제목</td>
+                </tr>
+                <tr>
+                    <td><input id='title' class="container" type="text" name="title" placeholder="title"></td>
+                </tr>
+                <tr>
+                    <td>작성자</td>
+                </tr>
+                <tr>
+                    <td><input id='writer' class="container" type="text" name="writer" value="<%= post.writer %>" readonly></td>
+                </tr>
+                <tr>
+                    <td>작성일</td>
+                </tr>
+                <tr>
+                    <td><input id='createdAt' class="container" type="text" name="createdAt" readonly></td>
+                </tr>
+                <tr>
+                    <td>해시태그</td>
+                </tr>
+                <tr>
+                    <td id='hashTagTd'><input id='hashTag' class="container" type="text" name="hashTag"
+                        placeholder="#hashTag1 #hashTag2"></td>
+                </tr>
+                <tr>
+                    <td>내용</td>
+                </tr>
+                <tr>
+                    <td><textarea id='content' class="container" style='height: 30rem; width:  30rem; ' name="content"
+                            placeholder="content"></textarea></td>
+                </tr>
+            </table>
+
+            <input id='createBtn' type="submit" value="작성" >
+            <input id='updateBtn' type="button" value="수정" style="display:none;" onclick="updateClick()">
+            <input id='cancleBtn' type="button" value="취소" style="display:none;" onclick="history.back()">
+            <input id='deleteBtn' type="button" value="삭제" style="display:none;" onclick="deleteClick()">
+            <input type="button" value="목록으로" onclick="location.href='/board'">
+
+        </form>
+    </div>
+</body>
+
+</html>

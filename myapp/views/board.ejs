@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Page Title</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link rel='stylesheet' type='text/css' media='screen' href='/stylesheets/board.css'>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        let posts;
+        window.onload = function () {
+             posts = "<%=JSON.stringify(posts) %>";
+            if (posts == "null")
+                return false;
+
+            posts = parseEjsVar(posts);
+            postSet(posts);
+        }
+        function parseEjsVar(str) {
+            ret = str.replace(/\r\n/gi,"\\r\\n").replace(/&#34;/gi, '\"');
+            ret = JSON.parse(ret);
+            return ret;
+        }
+
+        async function postSet(posts) {            
+            
+            let len = posts.length;
+            let str = "";
+            for (let i = 0; i < len; i++) {
+                str += `<tr data-id='${posts[i]._id}' onclick="readPost(this)"><td colspan='2' >${posts[i].title}</td><td>${posts[i].writer}</td></tr>`
+            }
+            document.getElementById('listBoard').innerHTML = str;
+
+        }
+        function readPost(obj) {
+
+            location.href = "/board/post/" + obj.getAttribute('data-id');
+
+        }
+
+        async function searchBtn() {
+            let searchTxt = document.getElementById('searchTxt').value;
+            let dropdown = document.getElementById('dropdown');
+            let option = dropdown.options[dropdown.selectedIndex].text;
+
+           // location.href = '/board/' + option + "/" + searchTxt;
+            let res =await axios.get('/board/' + option + "/" + searchTxt);
+            if(res.data){
+                postSet(res.data);                
+            }else{
+                alert('검색결과없음');
+            }
+        }
+
+    </script>
+</head>
+
+<body>
+    <div>
+        <h1>Board<input type="button" value="신규작성" onclick="location.href='/board/renderPostPage'">
+
+            <input type="button" value="about으로 이동" onclick="location.href='/about'"></h1>
+        <hr>
+        <br>
+
+        <table id='board' style="width: 30rem; table-layout: fixed; text-align: center;">
+            <tr class="space" style="text-align: right;">
+                <td colspan="3" class="space">검색옵션:
+                    <select name="dropdown" id="dropdown">
+                        <option value="content">content</option>
+                        <option value="writer">writer</option>
+                        <option value="writer">hashTag</option>
+                    </select>
+              <input id='searchTxt' type="text" placeholder='검색어'
+                        style='font-weight: lighter; width: fit-content;'><input id='searchBtn' onclick='searchBtn()'
+                        type="button" value="검색"><input type='button' value='모든 게시물 보기' onclick="location.href='/board'"></td>
+                      
+            </tr>
+     
+           
+            <tr>
+  
+                <th style="font-weight: bolder; background-color:lightgreen;" colspan="2" >제목</th>
+                <th style="font-weight: bolder; background-color:lightgreen;">작성자</th>
+            </tr>
+
+        </table>
+        <table id='listBoard' style="width: 30rem; table-layout: fixed; text-align: center;">
+        
+        </table>
+    </div>
+
+</body>
+
+</html>

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Page Title</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link rel='stylesheet' type='text/css' media='screen' href='/stylesheets/board.css'>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+
+    let photo=null;
+        window.onload = function () {
+            var mode = "<%=mode %>";
+            var header = document.getElementById('header');
+            var writer = document.getElementById('writer');
+            var createdAt = document.getElementById('createdAt');
+            var hashTag = document.getElementById('hashTag');
+            var hashTagTd=document.getElementById('hashTagTd');
+            var createBtn = document.getElementById('createBtn');
+            var updateBtn = document.getElementById('updateBtn');
+            var deleteBtn = document.getElementById('deleteBtn');
+            var inputFile = document.getElementById('inputFile');
+            var cancleBtn = document.getElementById('cancleBtn');
+            var modifyBtn = document.getElementById('modifyBtn');
+            var inputFile = document.getElementById('inputFile');
+            photo = "<%=JSON.stringify(photo) %>";
+            if (photo != "null" && photo != null) {
+                photo = parseEjsVar(photo);
+            }
+
+            let isMine = "<%=isMine%>";
+           
+            switch (mode.trim()) {
+                case 'read':
+                if(isMine=="true"||isMine==true){
+                    deleteBtn.style.display = "inline";
+                    modifyBtn.style.display = "inline";
+                }
+                    header.innerText = "겔러리 조회"; 
+                    createBtn.style.display = "none";        
+                    hashTag.readOnly=true;
+                    writer.value=photo.writer;
+                    createdAt.value= photo.createdAt;
+                    let img = document.createElement('img');
+                     img.src = '/images/upload/'+photo.title;
+                     let tbEle=document.getElementById("imgTd");                  
+                    tbEle.append(img);
+                    hashTagTd.innerHTML= makeHashtagStr(photo.hashTag,"read");
+                   inputFile.style.display='none';
+                    break;
+                case 'create':
+                
+                    writer.value=photo.writer;
+                    createdAt.value= new Date().toISOString();
+                    hashTagTd.innerHTML=`<input id='hashTag' class="container" type="text" name="hashTag"
+                            placeholder="#hashTag1 #hashTag2">`
+                    
+                    break;
+                case 'update':
+                    ;
+                    break;
+            }
+        }
+        function check(e) {
+        
+        if (e[3].value == null || e[3].value == '') {
+            alert("사진을 작성해 주세요");
+            return false;
+        }
+        
+        return true;
+    }
+
+        function parseEjsVar(str) {
+            ret = str.replace(/\r\n/gi,"\\r\\n").replace(/&#34;/gi, '\"');
+            ret = JSON.parse(ret);
+            return ret;
+        }
+
+        function handleFiles(files) {
+            let file = files[0];
+            let img = document.createElement('img');
+            img.src = URL.createObjectURL(file);
+            let tdEle=document.getElementById("imgTd");
+            tdEle.innerHTML='';
+            tdEle.append(img);
+        }
+
+        async function updateClick(e){
+            let formEle = document.getElementById('mainForm');
+            // if(check(formEle)==false)
+            //     return;
+            
+            formEle = new FormData(formEle);
+            let fileEle = document.getElementById('inputFile');
+            let res;
+            if(fileEle.files.length==0){
+                formEle.delete('img');
+                res =await axios.put('/gallery/galleryPage/'+photo._id,formEle);
+            }else{
+                res =await axios.patch('/gallery/galleryPage/'+photo._id,formEle);
+            }
+            
+            if(res.data=="ok"){
+                alert("수정 완료. 조회화면으로 이동합니다");
+                location.href="/gallery/galleryPage/"+photo._id;
+            }else{
+                alert("수정 실패. 다시시도해주세요");
+            }
+        }
+
+        async function deleteClick(e){
+            let res =await axios.delete('/gallery/galleryPage/'+photo._id);
+            if(res.data=="ok"){
+                alert("삭제 완료. 목록화면으로 이동합니다");
+                location.href="/gallery";
+            }else{
+                alert("삭제 실패. 다시시도해주세요");
+            }
+        }
+        function goUpdate(){
+            let isMine = "<%=isMine%>";
+            if(isMine=="true"||isMine==true){
+                    updateBtn.style.display = "inline";
+                    deleteBtn.style.display = "inline";
+                    cancleBtn.style.display = "inline";
+                    hashTagTd.innerHTML=makeHashtagStr(photo.hashTag,"update");
+                    hashTag.readOnly=false;
+                    header.innerText = "겔러리 수정"; 
+                    inputFile.style.display='inline';
+            }else{
+                alert('작성자가 다르므로 수정권한 없음');
+            }
+        }
+
+        function makeHashtagStr(ary,mode){
+            let str='';
+            let len= ary?ary.length:0;
+            if(mode=='read')
+                for(let i = 0 ; i < len; i ++){                
+                    str+=`<a href='/gallery/hashTagSearch/${ary[i].title}/${ary[i]._id}'>#${ary[i].title}&nbsp</a>`
+                }
+            else if(mode=='update'){
+                str+=`<input id='hashTag' class="container" type="text" name="hashTag" value='`;
+                let len= ary?ary.length:0;
+                for(let i=0;i<len;i++){          
+                str+=`#${ary[i].title}  `;
+                }
+                str+=`'>`;
+            }
+            return str;
+        }
+
+    </script>
+</head>
+
+<body>
+
+    <body>
+        <div>
+            <h1 id='header'>겔러리 작성</h1><input id='modifyBtn' onclick='goUpdate()'type="button" value="수정모드로" style="display:none;">
+            <form id='mainForm' action="/gallery/galleryPage" method="post" onsubmit="return check(this);"
+                enctype="multipart/form-data">
+                <table  class='createTable'>
+                   
+                    <tr>
+                        <td  style=" font-weight: bolder; background-color:lightgreen;" >작성자</td>
+                    </tr>
+                    <tr>
+                        <td><input style="" id='writer' class="container" type="text" name="writer" value="" readonly></td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: bolder; background-color:lightgreen;" >작성일</td>
+                    </tr>
+                    <tr>
+                        <td><input id='createdAt' class="container" type="text" name="createdAt" readonly></td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: bolder; background-color:lightgreen;" >해시태그</td>
+                    </tr>
+                    <tr>
+                        <td id='hashTagTd'><input id='hashTag' class="container" type="text" name="hashTag"
+                            placeholder="#hashTag1 #hashTag2"></td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: bolder; background-color:lightgreen;" >사진</td>
+                    </tr>
+                    <tr>
+                        <td><input id='inputFile' class="container" type="file" name="myImg" onchange="handleFiles(this.files)">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td id ='imgTd'>
+                          
+                        </td>
+                    </tr>
+                </table>
+
+                <input id='createBtn' type="submit" value="작성">
+                <input id='cancleBtn' type="button" value="취소" style="display:none;" onclick="history.back()">
+                <input id='updateBtn' type="button" value="수정" style="display:none;" onclick="updateClick()">
+                <input id='deleteBtn' type="button" value="삭제" style="display:none;" onclick="deleteClick()">
+                <input type="button" value="목록으로" onclick="location.href='/gallery'">
+
+            </form>
+        </div>
+    </body>
+</body>
+
+</html>
